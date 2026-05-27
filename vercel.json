@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/data",   "destination": "/api/data.js" },
+    { "source": "/api/jobs",   "destination": "/api/data.js" },
+    { "source": "/recruitai",  "destination": "/recruitai/index.html" },
+    { "source": "/epp",        "destination": "/epp-control/index.html" }
+  ]
+}
