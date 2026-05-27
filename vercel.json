@@ -1,7 +1,9 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/epp-control/index.html" },
-    { "source": "/epp", "destination": "/epp-control/index.html" },
-    { "source": "/api/data", "destination": "/api/data.js" }
+    { "source": "/",       "destination": "/epp-control/index.html" },
+    { "source": "/epp",    "destination": "/epp-control/index.html" },
+    { "source": "/firma",  "destination": "/firma/index.html" },
+    { "source": "/api/data", "destination": "/api/data.js" },
+    { "source": "/api/jobs", "destination": "/api/data.js" }
   ]
 }
