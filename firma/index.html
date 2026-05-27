@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>EPP Control — Firma Digital</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+:root{
+  --bg:#f7f5f0;--surface:#fff;--surface2:#f0ede7;--border:rgba(0,0,0,0.08);
+  --border2:rgba(0,0,0,0.13);--text:#1a1814;--muted:#7a7570;
+  --accent:#2563eb;--accent2:#1d4ed8;--success:#2d7a4f;--danger:#c0392b;
+  --warn:#854F0B;--warn-bg:#fef8ee;--warn-border:#f0d090;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── HEADER ── */
+.header{background:var(--bg);border-bottom:.5px solid var(--border2);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.logo span{color:var(--accent)}
+.header-right{font-size:12px;color:var(--muted)}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:24px 20px;max-width:480px;margin:0 auto}
+.screen.active{display:block}
+
+/* ── LOGIN ── */
+.login-card{background:var(--surface);border:.5px solid var(--border2);border-radius:16px;padding:28px 24px;margin-top:40px;text-align:center}
+.login-icon{font-size:40px;margin-bottom:16px}
+.login-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+.dni-input{width:100%;background:var(--bg);border:.5px solid var(--border2);border-radius:10px;padding:14px 16px;font-size:18px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;text-align:center;letter-spacing:2px;transition:border-color .15s}
+.dni-input:focus{border-color:var(--accent)}
+.btn-login{width:100%;margin-top:14px;padding:13px;background:var(--text);color:var(--bg);border:none;border-radius:10px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-login:hover{opacity:.85}
+.btn-login:disabled{opacity:.4;cursor:not-allowed}
+.login-error{margin-top:12px;padding:10px 14px;background:#fef2f2;border:.5px solid rgba(220,38,38,.2);border-radius:8px;font-size:13px;color:var(--danger);display:none}
+
+/* ── PERFIL ── */
+.perfil-card{background:var(--surface);border:.5px solid var(--border2);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.perfil-nombre{font-size:15px;font-weight:600;color:var(--text)}
+.perfil-cargo{font-size:12px;color:var(--muted);margin-top:2px}
+.btn-salir{margin-left:auto;background:none;border:.5px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-salir:hover{background:var(--surface2)}
+
+/* ── SECCIÓN TÍTULO ── */
+.sec-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+.sec-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* ── EPP CARDS ── */
+.epp-card{background:var(--surface);border:.5px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:10px;transition:border-color .15s}
+.epp-card.pendiente{border-color:rgba(234,179,8,.4);background:#fffef5}
+.epp-card.vencido{border-color:rgba(220,38,38,.2);background:#fef9f9}
+.epp-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.epp-info{flex:1}
+.epp-tipo{font-size:14px;font-weight:600;color:var(--text)}
+.epp-detalle{font-size:11px;color:var(--muted);margin-top:3px}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.pill-green{background:#dcfce7;color:#166534}
+.pill-yellow{background:#fef9c3;color:#854d0e}
+.pill-red{background:#fee2e2;color:#991b1b}
+.pill-blue{background:#dbeafe;color:#1e40af}
+.pill-gray{background:var(--surface2);color:var(--muted)}
+
+/* firma preview */
+.firma-preview{margin-top:12px;padding-top:12px;border-top:.5px solid var(--border2)}
+.firma-img{max-width:180px;border:.5px solid var(--border2);border-radius:6px;display:block}
+.firma-meta{font-size:10px;color:var(--muted);margin-top:4px}
+
+.btn-firmar{margin-top:12px;width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-firmar:hover{opacity:.88}
+.btn-ya-firmado{margin-top:12px;width:100%;padding:10px;background:#f0fdf4;color:#166534;border:.5px solid rgba(22,163,74,.2);border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:default}
+
+/* ── MODAL FIRMA ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;transform:translateY(100%);transition:transform .25s ease}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;padding:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.canvas-wrap{border:.5px solid var(--border2);border-radius:10px;background:#fafaf8;position:relative;overflow:hidden;touch-action:none}
+canvas{display:block;width:100%;cursor:crosshair;touch-action:none}
+.canvas-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);pointer-events:none;transition:opacity .2s}
+.canvas-placeholder.hidden{opacity:0}
+.modal-actions{display:flex;gap:8px;margin-top:14px}
+.btn-limpiar{flex:1;padding:11px;background:var(--surface2);border:.5px solid var(--border2);border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--text)}
+.btn-confirmar{flex:2;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-confirmar:hover{opacity:.88}
+.btn-confirmar:disabled{opacity:.4;cursor:not-allowed}
+.firma-aviso{font-size:11px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.8}
+.empty-icon{font-size:36px;opacity:.3;margin-bottom:8px}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px}
+.spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">EPP<span>Control</span></div>
+  <div class="header-right" id="header-right">Portal de firma</div>
+</div>
+
+<!-- ══ SCREEN: LOGIN ══ -->
+<div class="screen active" id="screen-login">
+  <div class="login-card">
+    <div class="login-icon">🪪</div>
+    <div class="login-title">Consulta y firma</div>
+    <div class="login-sub">Ingresa tu número de DNI para ver tus equipos de protección y uniformes asignados</div>
+    <input class="dni-input" id="dni-input" type="number" placeholder="Ej: 12345678" maxlength="8" oninput="validarDNI()">
+    <button class="btn-login" id="btn-ingresar" disabled onclick="ingresar()">Ingresar</button>
+    <div class="login-error" id="login-error">DNI no encontrado. Consulta con tu área de RRHH.</div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: MIS EPPs ══ -->
+<div class="screen" id="screen-epps">
+  <div class="perfil-card">
+    <div class="avatar" id="colab-avatar"></div>
+    <div>
+      <div class="perfil-nombre" id="colab-nombre"></div>
+      <div class="perfil-cargo" id="colab-cargo"></div>
+    </div>
+    <button class="btn-salir" onclick="salir()">Salir</button>
+  </div>
+  <div class="sec-title">Mis EPPs y uniformes</div>
+  <div class="sec-sub" id="epps-sub"></div>
+  <div id="epps-lista"></div>
+</div>
+
+<!-- ══ MODAL: CANVAS FIRMA ══ -->
+<div class="modal-bg" id="modal-firma">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-firma-titulo">Firma de recepción</div>
+      <button class="modal-close" onclick="cerrarModalFirma()">✕</button>
+    </div>
+    <div class="modal-sub" id="modal-firma-sub">Firma con tu dedo en el recuadro de abajo</div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="firma-canvas" height="180"></canvas>
+      <div class="canvas-placeholder" id="canvas-placeholder">Firma aquí con tu dedo ✍️</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-limpiar" onclick="limpiarCanvas()">Limpiar</button>
+      <button class="btn-confirmar" id="btn-confirmar-firma" disabled onclick="confirmarFirma()">Confirmar firma</button>
+    </div>
+    <div class="firma-aviso">Al confirmar declaras haber recibido conforme el artículo indicado</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API = '/api/data';
+var _colaboradores = [];
+var _entregas = [];
+var _colActual = null;
+var _entregaFirmando = null;
+var _canvasDibujado = false;
+
+// ════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════
+function toast(msg, dur) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show';
+  setTimeout(function(){ t.className = 'toast'; }, dur||2600);
+}
+function fmtFecha(d){
+  if(!d) return '—';
+  var dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function diasHasta(d){ if(!d) return null; return Math.round((new Date(d+'T00:00:00')-new Date())/86400000); }
+function calcEstado(vence){
+  if(!vence) return 'Vigente';
+  var d = diasHasta(vence);
+  if(d<0) return 'Vencido'; if(d<=90) return 'Por vencer'; return 'Vigente';
+}
+function pillEstado(e){
+  var m = {'Vigente':'pill-green','Por vencer':'pill-yellow','Vencido':'pill-red'};
+  return '<span class="pill '+(m[e]||'pill-gray')+'">'+e+'</span>';
+}
+function avatarColor(n){
+  var cols=['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#9333ea','#16a34a'];
+  var h=0; for(var c of n) h=(h*31+c.charCodeAt(0))%cols.length; return cols[h];
+}
+function initials(n){ return n.split(' ').slice(0,2).map(function(p){return p[0]||'';}).join('').toUpperCase(); }
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('screen-'+id).classList.add('active');
+}
+function safeFetch(url, opts){ return fetch(url, opts).catch(function(){ return null; }); }
+
+// ════════════════════════════════════════════
+// CARGAR DATOS
+// ════════════════════════════════════════════
+async function cargarDatos(){
+  try {
+    var [rc, re] = await Promise.all([
+      safeFetch(API + '?type=epp_colaboradores'),
+      safeFetch(API + '?type=epp_entregas'),
+    ]);
+    if(rc){ var dc = await rc.json(); if(dc.epp_colaboradores && dc.epp_colaboradores.length) _colaboradores = dc.epp_colaboradores; }
+    if(re){ var de = await re.json(); if(de.epp_entregas && de.epp_entregas.length) _entregas = de.epp_entregas; }
+    // fallback localStorage
+    if(!_colaboradores.length){ try{ _colaboradores = JSON.parse(localStorage.getItem('epp_colaboradores')||'[]'); }catch(e){} }
+    if(!_entregas.length){ try{ _entregas = JSON.parse(localStorage.getItem('epp_entregas')||'[]'); }catch(e){} }
+  } catch(e) {
+    try{ _colaboradores = JSON.parse(localStorage.getItem('epp_colaboradores')||'[]'); }catch(x){}
+    try{ _entregas = JSON.parse(localStorage.getItem('epp_entregas')||'[]'); }catch(x){}
+  }
+}
+
+// ════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════
+function validarDNI(){
+  var v = document.getElementById('dni-input').value.trim();
+  document.getElementById('btn-ingresar').disabled = v.length < 7;
+  document.getElementById('login-error').style.display = 'none';
+}
+async function ingresar(){
+  var dni = document.getElementById('dni-input').value.trim();
+  var btn = document.getElementById('btn-ingresar');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  await cargarDatos();
+  var col = _colaboradores.find(function(c){ return c.dni === dni && c.estado === 'Activo'; });
+  if(!col){
+    document.getElementById('login-error').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Ingresar'; return;
+  }
+  _colActual = col;
+  mostrarEPPs();
+}
+function salir(){
+  _colActual = null; _entregaFirmando = null;
+  document.getElementById('dni-input').value = '';
+  document.getElementById('btn-ingresar').disabled = true;
+  document.getElementById('login-error').style.display = 'none';
+  showScreen('login');
+  document.getElementById('header-right').textContent = 'Portal de firma';
+}
+
+// ════════════════════════════════════════════
+// MOSTRAR EPPs DEL COLABORADOR
+// ════════════════════════════════════════════
+function mostrarEPPs(){
+  var c = _colActual;
+  var av = document.getElementById('colab-avatar');
+  av.style.background = avatarColor(c.nombre);
+  av.textContent = initials(c.nombre);
+  document.getElementById('colab-nombre').textContent = c.nombre;
+  document.getElementById('colab-cargo').textContent = c.cargo + ' · ' + c.sede;
+  document.getElementById('header-right').textContent = c.nombre.split(',')[0];
+
+  var ents = _entregas.filter(function(e){ return e.colId === c.id; });
+  var pendFirma = ents.filter(function(e){ return e.firma === 'Pendiente'; }).length;
+  document.getElementById('epps-sub').textContent =
+    ents.length + ' artículo' + (ents.length!==1?'s':'') + ' asignado' + (ents.length!==1?'s':'') +
+    (pendFirma ? ' · ' + pendFirma + ' pendiente' + (pendFirma!==1?'s':'') + ' de firma' : '');
+
+  if(!ents.length){
+    document.getElementById('epps-lista').innerHTML =
+      '<div class="empty"><div class="empty-icon">📦</div>No tienes artículos asignados aún.<br>Consulta con tu área de RRHH.</div>';
+    showScreen('epps'); return;
+  }
+
+  // Ordenar: pendientes primero, luego vencidos, luego vigentes
+  ents.sort(function(a,b){
+    var ord = function(e){ return e.firma==='Pendiente'?0:(calcEstado(e.vence)==='Vencido'?1:2); };
+    return ord(a)-ord(b);
+  });
+
+  var html = '';
+  ents.forEach(function(e){
+    var est = calcEstado(e.vence);
+    var clsCard = e.firma==='Pendiente' ? 'pendiente' : (est==='Vencido' ? 'vencido' : '');
+    var firmado = e.firma === 'Confirmado' || e.firmaImg;
+
+    html += '<div class="epp-card '+clsCard+'" id="card-'+e.id+'">';
+    html += '<div class="epp-header">';
+    html += '<div class="epp-info">';
+    html += '<div class="epp-tipo">'+e.tipo+'</div>';
+    html += '<div class="epp-detalle">';
+    if(e.talla) html += e.talla + ' · ';
+    html += 'Cant: ' + (e.cant||1);
+    html += ' · Entrega: ' + fmtFecha(e.fecha);
+    if(e.vence) html += ' · Vence: ' + fmtFecha(e.vence);
+    html += '</div></div>';
+    html += pillEstado(est);
+    html += '</div>';
+
+    // Firma preview si ya firmó
+    if(firmado && e.firmaImg){
+      html += '<div class="firma-preview">';
+      html += '<img class="firma-img" src="'+e.firmaImg+'" alt="Firma">';
+      html += '<div class="firma-meta">Firmado el '+fmtFecha(e.firmaFecha)+'</div>';
+      html += '</div>';
+      html += '<div class="btn-ya-firmado">✓ Recepción confirmada</div>';
+    } else if(firmado){
+      html += '<div class="btn-ya-firmado">✓ Recepción confirmada — ' + fmtFecha(e.firmaFecha||e.fecha) + '</div>';
+    } else {
+      html += '<button class="btn-firmar" onclick="abrirFirma(\''+e.id+'\')">✍️ Firmar recepción</button>';
+    }
+    html += '</div>';
+  });
+
+  document.getElementById('epps-lista').innerHTML = html;
+  showScreen('epps');
+}
+
+// ════════════════════════════════════════════
+// CANVAS DE FIRMA
+// ════════════════════════════════════════════
+var _ctx = null;
+var _drawing = false;
+var _lastX = 0, _lastY = 0;
+
+function abrirFirma(entregaId){
+  _entregaFirmando = _entregas.find(function(e){ return e.id===entregaId; });
+  if(!_entregaFirmando) return;
+  document.getElementById('modal-firma-titulo').textContent = 'Firma — ' + _entregaFirmando.tipo;
+  document.getElementById('modal-firma-sub').textContent = 'Firma con tu dedo para confirmar que recibiste: ' + _entregaFirmando.tipo + ((_entregaFirmando.talla)?' ('+_entregaFirmando.talla+')':'');
+  document.getElementById('modal-firma').classList.add('open');
+  initCanvas();
+}
+function cerrarModalFirma(){
+  document.getElementById('modal-firma').classList.remove('open');
+  _entregaFirmando = null;
+}
+function initCanvas(){
+  var canvas = document.getElementById('firma-canvas');
+  var wrap = document.getElementById('canvas-wrap');
+  canvas.width = wrap.clientWidth || 400;
+  canvas.height = 180;
+  _ctx = canvas.getContext('2d');
+  _ctx.clearRect(0,0,canvas.width,canvas.height);
+  _ctx.strokeStyle = '#1a1814';
+  _ctx.lineWidth = 2.5;
+  _ctx.lineCap = 'round';
+  _ctx.lineJoin = 'round';
+  _canvasDibujado = false;
+  document.getElementById('canvas-placeholder').classList.remove('hidden');
+  document.getElementById('btn-confirmar-firma').disabled = true;
+
+  // Eventos touch
+  canvas.ontouchstart = function(e){ e.preventDefault(); var t=e.touches[0]; var r=canvas.getBoundingClientRect(); _drawing=true; _lastX=t.clientX-r.left; _lastY=t.clientY-r.top; _ctx.beginPath(); _ctx.moveTo(_lastX,_lastY); };
+  canvas.ontouchmove = function(e){ e.preventDefault(); if(!_drawing) return; var t=e.touches[0]; var r=canvas.getBoundingClientRect(); var x=t.clientX-r.left; var y=t.clientY-r.top; _ctx.lineTo(x,y); _ctx.stroke(); _lastX=x; _lastY=y; onDraw(); };
+  canvas.ontouchend = function(e){ e.preventDefault(); _drawing=false; };
+  // Eventos mouse (PC)
+  canvas.onmousedown = function(e){ var r=canvas.getBoundingClientRect(); _drawing=true; _lastX=e.clientX-r.left; _lastY=e.clientY-r.top; _ctx.beginPath(); _ctx.moveTo(_lastX,_lastY); };
+  canvas.onmousemove = function(e){ if(!_drawing) return; var r=canvas.getBoundingClientRect(); var x=e.clientX-r.left; var y=e.clientY-r.top; _ctx.lineTo(x,y); _ctx.stroke(); _lastX=x; _lastY=y; onDraw(); };
+  canvas.onmouseup = function(){ _drawing=false; };
+  canvas.onmouseleave = function(){ _drawing=false; };
+}
+function onDraw(){
+  if(!_canvasDibujado){
+    _canvasDibujado = true;
+    document.getElementById('canvas-placeholder').classList.add('hidden');
+    document.getElementById('btn-confirmar-firma').disabled = false;
+  }
+}
+function limpiarCanvas(){
+  var canvas = document.getElementById('firma-canvas');
+  _ctx.clearRect(0,0,canvas.width,canvas.height);
+  _canvasDibujado = false;
+  document.getElementById('canvas-placeholder').classList.remove('hidden');
+  document.getElementById('btn-confirmar-firma').disabled = true;
+}
+
+// ════════════════════════════════════════════
+// CONFIRMAR FIRMA — guardar imagen + actualizar
+// ════════════════════════════════════════════
+async function confirmarFirma(){
+  if(!_canvasDibujado || !_entregaFirmando) return;
+  var btn = document.getElementById('btn-confirmar-firma');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  var canvas = document.getElementById('firma-canvas');
+  var firmaImg = canvas.toDataURL('image/png');
+  var hoy = new Date().toISOString().slice(0,10);
+
+  // Actualizar en memoria
+  var idx = _entregas.findIndex(function(e){ return e.id===_entregaFirmando.id; });
+  if(idx>=0){
+    _entregas[idx].firma = 'Confirmado';
+    _entregas[idx].firmaImg = firmaImg;
+    _entregas[idx].firmaFecha = hoy;
+  }
+
+  // Guardar en localStorage
+  localStorage.setItem('epp_entregas', JSON.stringify(_entregas));
+
+  // Guardar en API
+  try {
+    var r = await fetch(API + '?type=epp_entregas', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ epp_entregas: _entregas })
+    });
+    var d = await r.json();
+    if(d && d.ok){ toast('✓ Firma guardada correctamente'); }
+    else { toast('Firma guardada localmente'); }
+  } catch(e) {
+    toast('Firma guardada localmente');
+  }
+
+  cerrarModalFirma();
+  setTimeout(function(){ mostrarEPPs(); }, 300);
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+document.getElementById('dni-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter' && !document.getElementById('btn-ingresar').disabled) ingresar();
+});
+// Redimensionar canvas al rotar pantalla
+window.addEventListener('resize', function(){
+  if(document.getElementById('modal-firma').classList.contains('open')) initCanvas();
+});
+</script>
+</body>
+</html>
