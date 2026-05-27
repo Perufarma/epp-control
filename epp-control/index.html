@@ -420,35 +420,23 @@ function safeFetch(url, opts) {
   return fetch(url, opts).catch(function() { return null; });
 }
 
+function saveToAPI(type, lsKey, data) {
+  localStorage.setItem(LS[lsKey], JSON.stringify(data));
+  safeFetch(API + '?type=' + type, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify((function(){ var o={}; o[type]=data; return o; })())
+  }).then(function(r){ return r ? r.json() : null; })
+    .then(function(d){ setSyncStatus(!!(d && d.ok)); })
+    .catch(function(){ setSyncStatus(false); });
+}
+
+function saveColaboradores() { saveToAPI('epp_colaboradores','col',_colaboradores); }
+function saveEntregas()      { saveToAPI('epp_entregas','ent',_entregas); }
+function saveStock()         { saveToAPI('epp_stock','stk',_stock); }
+function saveCatalogo()      { saveToAPI('epp_catalogo','cat',_catalogo); }
+
 // ── GUARDAR ──────────────────────────────────────────
-function saveColaboradores() {
-  localStorage.setItem(LS.col, JSON.stringify(_colaboradores));
-  safeFetch(API + '?type=epp_colaboradores', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ epp_colaboradores: _colaboradores })
-  });
-}
-function saveEntregas() {
-  localStorage.setItem(LS.ent, JSON.stringify(_entregas));
-  safeFetch(API + '?type=epp_entregas', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ epp_entregas: _entregas })
-  });
-}
-function saveStock() {
-  localStorage.setItem(LS.stk, JSON.stringify(_stock));
-  safeFetch(API + '?type=epp_stock', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ epp_stock: _stock })
-  });
-}
-function saveCatalogo() {
-  localStorage.setItem(LS.cat, JSON.stringify(_catalogo));
-  safeFetch(API + '?type=epp_catalogo', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ epp_catalogo: _catalogo })
-  });
-}
+
 
 // ── CARGAR ───────────────────────────────────────────
 function loadFromLS() {
@@ -466,13 +454,14 @@ function setSyncStatus(online) {
 }
 
 async function loadAll() {
-  // Cargar desde localStorage primero (respuesta inmediata)
+  // 1) LS primero para respuesta inmediata
   loadFromLS();
-  if (!_colaboradores.length && !_entregas.length) seedDemo();
+  var localVacio = !_colaboradores.length && !_entregas.length;
+  if (localVacio) seedDemo();
   initSelects();
   renderAll();
 
-  // Luego intentar API (sobreescribe si hay datos más frescos)
+  // 2) API — sobreescribe solo si devuelve datos no vacíos
   try {
     var [rc, re, rs, rcat] = await Promise.all([
       safeFetch(API + '?type=epp_colaboradores'),
@@ -482,15 +471,13 @@ async function loadAll() {
     ]);
     if (!rc) { setSyncStatus(false); return; }
     var [dc, de, ds, dcat] = await Promise.all([rc.json(), re.json(), rs.json(), rcat.json()]);
-    if (dc.epp_colaboradores)  _colaboradores = dc.epp_colaboradores;
-    if (de.epp_entregas)       _entregas      = de.epp_entregas;
-    if (ds.epp_stock)          _stock         = ds.epp_stock;
-    if (dcat.epp_catalogo)     _catalogo      = dcat.epp_catalogo;
-    // Guardar en LS como caché
-    localStorage.setItem(LS.col, JSON.stringify(_colaboradores));
-    localStorage.setItem(LS.ent, JSON.stringify(_entregas));
-    localStorage.setItem(LS.stk, JSON.stringify(_stock));
-    localStorage.setItem(LS.cat, JSON.stringify(_catalogo));
+    var apiTieneDatos = (dc.epp_colaboradores && dc.epp_colaboradores.length > 0);
+    if (dc.epp_colaboradores && dc.epp_colaboradores.length) { _colaboradores = dc.epp_colaboradores; localStorage.setItem(LS.col, JSON.stringify(_colaboradores)); }
+    if (de.epp_entregas      && de.epp_entregas.length)      { _entregas      = de.epp_entregas;      localStorage.setItem(LS.ent, JSON.stringify(_entregas)); }
+    if (ds.epp_stock         && ds.epp_stock.length)         { _stock         = ds.epp_stock;         localStorage.setItem(LS.stk, JSON.stringify(_stock)); }
+    if (dcat.epp_catalogo    && dcat.epp_catalogo.length)    { _catalogo      = dcat.epp_catalogo;    localStorage.setItem(LS.cat, JSON.stringify(_catalogo)); }
+    // Si LS estaba vacío pero API sí tiene datos, limpiar demo y renderizar con datos reales
+    if (localVacio && apiTieneDatos) renderAll();
     setSyncStatus(true);
     initSelects();
     renderAll();
@@ -546,6 +533,18 @@ function renderSection(id){
   if(map[id]) map[id]();
 }
 function renderAll(){
+  // Siempre actualizar dashboard y badge alertas
+  renderDashboard();
+  renderAlertas();
+  // Solo renderizar el panel activo para no hacer trabajo innecesario
+  var active = document.querySelector('.panel.active');
+  if(active){
+    var id = active.id.replace('panel-','');
+    var map={entregas:renderEntregas,stock:renderStock,equipo:renderEquipo,catalogo:renderCatalogo,colaboradores:renderColaboradores};
+    if(map[id]) map[id]();
+  }
+}
+function renderAllPanels(){
   renderDashboard(); renderAlertas(); renderEntregas();
   renderStock(); renderEquipo(); renderCatalogo(); renderColaboradores();
 }
@@ -659,7 +658,7 @@ function renderDashboard(){
   b.textContent = total; b.style.display = total>0 ? '' : 'none';
 }
 function kpiCard(label, val, cls, sub){
-  return '<div class="kpi-card"><div class="kpi-label">'+label+'</div><div class="kpi-val '+(cls||'")">'+val+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
+  return '<div class="kpi-card"><div class="kpi-label">'+label+'</div><div class="kpi-val '+(cls||'')+'">'+(val||'0')+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
 }
 
 // ════════════════════════════════════════════════════════
@@ -683,8 +682,27 @@ function renderAlertas(){
   }).join('');
 }
 function abrirRenovacion(id){
-  showPanel('entregas', document.querySelectorAll('.nav-tab')[2]);
-  setTimeout(function(){ toggleForm('form-entrega'); },100);
+  // Navegar al tab Entregas por texto, no por índice
+  var tabs = document.querySelectorAll('.nav-tab');
+  var tabEntregas = null;
+  tabs.forEach(function(t){ if(t.textContent.trim().startsWith('Entregas')) tabEntregas=t; });
+  showPanel('entregas', tabEntregas);
+  // Pre-llenar el formulario con los datos de la entrega a renovar
+  setTimeout(function(){
+    var form = document.getElementById('form-entrega');
+    if(!form.classList.contains('open')) toggleForm('form-entrega');
+    var entrega = _entregas.find(function(e){ return e.id===id; });
+    if(!entrega) return;
+    populateColabSelect();
+    setTimeout(function(){
+      document.getElementById('e-colab').value = entrega.colId;
+      document.getElementById('e-tipo').value  = entrega.tipo;
+      document.getElementById('e-talla').value = entrega.talla||'';
+      document.getElementById('e-cant').value  = entrega.cant||1;
+      document.getElementById('e-resp').value  = entrega.resp||'';
+      document.getElementById('e-fecha').valueAsDate = new Date();
+    },50);
+  },100);
 }
 
 // ════════════════════════════════════════════════════════
@@ -864,6 +882,8 @@ function guardarColaborador(){
   var cargo  = document.getElementById('col-cargo').value;
   var sede   = document.getElementById('col-sede').value;
   if(!nombre||!dni||!cargo||!sede){ toast('Completa los campos obligatorios'); return; }
+  var duplicado = _colaboradores.find(function(c){ return c.dni === dni; });
+  if(duplicado){ toast('Ya existe un colaborador con ese DNI: ' + duplicado.nombre); return; }
   _colaboradores.push({id:uid(),nombre:nombre,dni:dni,cargo:cargo,sede:sede,estado:'Activo'});
   saveColaboradores(); toggleForm('form-colab'); renderAll(); toast('✓ Colaborador agregado');
 }
