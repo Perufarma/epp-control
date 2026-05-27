@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPP Control — Gestión de Dotación</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#f7f5f0;--surface:#fff;--surface2:#f0ede7;--border:rgba(0,0,0,0.08);
+  --border2:rgba(0,0,0,0.13);--text:#1a1814;--muted:#7a7570;
+  --accent:#2563eb;--accent2:#1d4ed8;--success:#2d7a4f;--danger:#c0392b;
+  --warning:#854F0B;--warn-bg:#fef8ee;--warn-border:#f0d090;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── NAV ── */
+.nav{background:var(--bg);border-bottom:.5px solid var(--border2);padding:0 28px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;gap:0;overflow-x:auto}
+.nav-logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;letter-spacing:-.02em;margin-right:28px;display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
+.nav-logo span{color:var(--accent)}
+.nav-tab{padding:0 14px;height:52px;display:flex;align-items:center;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-left:none;border-right:none;border-top:none;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--text);font-weight:500;border-bottom-color:var(--accent)}
+.nav-badge{background:#ef4444;color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:5px}
+.nav-sync{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e}
+.sync-dot.off{background:#f59e0b}
+
+/* ── PANELS ── */
+.panel{display:none;padding:28px;max-width:1060px;margin:0 auto}
+.panel.active{display:block}
+
+/* ── TYPOGRAPHY ── */
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:600;letter-spacing:-.03em}
+.section-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.section-head{font-size:15px;font-weight:500;letter-spacing:-.01em;margin-bottom:14px}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;font-family:'DM Sans',sans-serif;transition:all .15s;border:none;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--text);color:var(--bg)}.btn-primary:hover{opacity:.85}
+.btn-secondary{background:var(--surface);color:var(--text);border:.5px solid var(--border2)}.btn-secondary:hover{background:var(--surface2)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent2)}
+.btn-danger{background:#fbeaea;color:var(--danger);border:.5px solid rgba(192,57,43,.2)}
+.btn-warn{background:var(--warn-bg);color:var(--warning);border:.5px solid var(--warn-border)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:.5px solid var(--border2);border-radius:12px;padding:18px 20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border:.5px solid var(--border2);border-radius:10px;padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.kpi-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:600;line-height:1.1;margin-top:4px}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.kpi-red{color:#dc2626}.kpi-yellow{color:#d97706}.kpi-green{color:var(--success)}
+
+/* ── FORMS ── */
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg);border:.5px solid var(--border2);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{height:70px;resize:vertical;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+.form-section{background:var(--surface);border:.5px solid var(--border2);border-radius:12px;padding:18px 20px;display:none;flex-direction:column;gap:14px;margin-bottom:20px}
+.form-section.open{display:flex}
+
+/* ── TABLES ── */
+.table-wrap{overflow-x:auto;border-radius:10px;border:.5px solid var(--border2)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--surface2)}
+th{padding:10px 13px;text-align:left;font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:.5px solid var(--border2)}
+td{padding:10px 13px;border-top:.5px solid var(--border);color:var(--muted);vertical-align:middle}
+tbody tr:hover{background:var(--surface2)}
+td.td-name{color:var(--text);font-weight:500}
+
+/* ── BADGES / PILLS ── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;font-family:'DM Mono',monospace}
+.pill-green{background:#dcfce7;color:#166534}
+.pill-yellow{background:#fef9c3;color:#854d0e}
+.pill-red{background:#fee2e2;color:#991b1b}
+.pill-blue{background:#dbeafe;color:#1e40af}
+.pill-gray{background:var(--surface2);color:var(--muted)}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:8px;border:.5px solid;margin-bottom:8px}
+.alert-red{background:#fef2f2;border-color:rgba(220,38,38,.2)}
+.alert-yellow{background:var(--warn-bg);border-color:var(--warn-border)}
+.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dot-red{background:#ef4444}.dot-yellow{background:#f59e0b}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{background:var(--surface);border:.5px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent)}
+
+/* ── PROGRESS ── */
+.prog-wrap{background:var(--surface2);border-radius:99px;height:5px;overflow:hidden;margin-top:6px}
+.prog-bar{height:100%;border-radius:99px;transition:width .4s ease}
+
+/* ── TEAM CARDS ── */
+.member-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.member-card{background:var(--surface);border:.5px solid var(--border2);border-radius:10px;padding:14px 16px}
+.member-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.member-name{font-size:13px;font-weight:600;color:var(--text)}
+.member-role{font-size:11px;color:var(--muted)}
+.epp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:5px;margin-bottom:4px}
+.epp-name{font-size:12px;color:var(--text)}
+.epp-date{font-size:10px;color:var(--muted)}
+
+/* ── CATALOG GRID ── */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cat-card{background:var(--surface);border:.5px solid var(--border2);border-radius:9px;padding:13px 15px}
+.cat-cargo{font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.cat-item{font-size:14px;font-weight:500;color:var(--text)}
+.cat-detail{font-size:11px;color:var(--muted);margin-top:3px}
+.cat-norma{font-size:10px;color:var(--accent);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* ── STOCK CARDS ── */
+.stock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stock-card{background:var(--surface);border:.5px solid var(--border2);border-radius:10px;padding:14px 16px}
+.stock-sede{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:8px;border-bottom:.5px solid var(--border2)}
+.stock-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border)}
+.stock-row:last-child{border-bottom:none}
+.stock-art{font-size:12px;font-weight:500;color:var(--text)}
+.stock-min{font-size:10px;color:var(--muted)}
+.stock-num{font-size:14px;font-weight:700;font-family:'DM Mono',monospace}
+
+/* ── MISC ── */
+.divider{height:.5px;background:var(--border2);margin:24px 0}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.6}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+.tip{font-size:11px;color:var(--warning);background:var(--warn-bg);border:.5px solid var(--warn-border);border-radius:6px;padding:7px 10px;margin-top:4px;line-height:1.5}
+.head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .panel{padding:14px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .member-grid{grid-template-columns:1fr}
+  .stock-grid{grid-template-columns:1fr}
+  .cat-grid{grid-template-columns:1fr 1fr}
+  .form-row,.form-row-3,.form-row-4{grid-template-columns:1fr}
+  .nav{padding:0 12px}
+  .nav-logo{margin-right:12px}
+  .nav-tab{padding:0 10px;font-size:12px}
+}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .cat-grid{grid-template-columns:1fr}
+  .head-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="nav-logo">EPP<span>Control</span></div>
+  <button class="nav-tab active" onclick="showPanel('dashboard',this)">Dashboard</button>
+  <button class="nav-tab" onclick="showPanel('alertas',this)">Alertas<span class="nav-badge" id="badge-alerta" style="display:none">0</span></button>
+  <button class="nav-tab" onclick="showPanel('entregas',this)">Entregas</button>
+  <button class="nav-tab" onclick="showPanel('stock',this)">Stock</button>
+  <button class="nav-tab" onclick="showPanel('equipo',this)">Equipo</button>
+  <button class="nav-tab" onclick="showPanel('catalogo',this)">Catálogo</button>
+  <button class="nav-tab" onclick="showPanel('colaboradores',this)">Colaboradores</button>
+  <div class="nav-sync"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Sincronizado</span></div>
+</nav>
+
+<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<div class="panel active" id="panel-dashboard">
+  <div class="head-row">
+    <div><div class="section-title">Dashboard</div><div class="section-sub" id="dash-fecha"></div></div>
+  </div>
+  <div class="kpi-grid" id="dash-kpis"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><div class="section-head">Cumplimiento por sede</div><div id="dash-sedes"></div></div>
+    <div class="card"><div class="section-head">Últimas entregas</div><div id="dash-recientes"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ ALERTAS ══════════════════ -->
+<div class="panel" id="panel-alertas">
+  <div class="head-row">
+    <div><div class="section-title">Alertas de vencimiento</div><div class="section-sub">Artículos vencidos o por vencer en los próximos 90 días</div></div>
+  </div>
+  <div id="alertas-list"></div>
+</div>
+
+<!-- ══════════════════ ENTREGAS ══════════════════ -->
+<div class="panel" id="panel-entregas">
+  <div class="head-row">
+    <div><div class="section-title">Registro de entregas</div><div class="section-sub">EPPs y uniformes entregados</div></div>
+    <div class="head-actions">
+      <button class="btn btn-primary" onclick="toggleForm('form-entrega')">+ Nueva entrega</button>
+    </div>
+  </div>
+
+  <div class="form-section" id="form-entrega">
+    <div class="section-head">Nueva entrega</div>
+    <div class="form-group"><label>Colaborador *</label><select id="e-colab"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label>Tipo de artículo *</label>
+        <select id="e-tipo">
+          <option value="">Seleccionar...</option>
+          <option>Casco</option><option>Guantes</option><option>Lentes de protección</option>
+          <option>Chaleco reflectivo</option><option>Zapatos de seguridad</option>
+          <option>Respirador N95</option><option>Polo uniforme</option>
+          <option>Pantalón uniforme</option><option>Casaca</option>
+          <option>Botas PVC</option><option>Tapones auditivos</option><option>Arnés</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Talla / Descripción</label><input id="e-talla" placeholder="Ej: L, Talla 42..."></div>
+    </div>
+    <div class="form-row-4">
+      <div class="form-group"><label>Cantidad *</label><input id="e-cant" type="number" min="1" value="1"></div>
+      <div class="form-group"><label>Fecha entrega *</label><input id="e-fecha" type="date"></div>
+      <div class="form-group"><label>Fecha vencimiento</label><input id="e-vence" type="date"></div>
+      <div class="form-group"><label>Firma</label>
+        <select id="e-firma"><option value="Pendiente">Pendiente</option><option value="Confirmado">Confirmado ✓</option><option value="No aplica">No aplica</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Responsable entrega</label><input id="e-resp" placeholder="Nombre del encargado"></div>
+      <div class="form-group"><label>Observaciones</label><input id="e-obs" placeholder="Notas..."></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary btn-sm" onclick="toggleForm('form-entrega')">Cancelar</button>
+      <button class="btn btn-accent btn-sm" onclick="guardarEntrega()">Guardar entrega</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <input id="search-ent" placeholder="Buscar colaborador, artículo..." oninput="renderEntregas()" style="flex:1;min-width:180px">
+    <select id="f-sede-ent" onchange="renderEntregas()"><option value="">Todas las sedes</option></select>
+    <select id="f-est-ent" onchange="renderEntregas()">
+      <option value="">Todos los estados</option>
+      <option>Vigente</option><option>Por vencer</option><option>Vencido</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Colaborador</th><th>Sede</th><th>Artículo</th><th>Talla/Cant</th>
+      <th>Entrega</th><th>Vencimiento</th><th>Estado</th><th>Firma</th><th></th>
+    </tr></thead><tbody id="tbody-ent"></tbody></table>
+  </div>
+  <div class="empty-state" id="empty-ent" style="display:none">Sin entregas. Usa "Nueva entrega" para registrar.</div>
+</div>
+
+<!-- ══════════════════ STOCK ══════════════════ -->
+<div class="panel" id="panel-stock">
+  <div class="head-row">
+    <div><div class="section-title">Stock por sede</div><div class="section-sub">Inventario de EPPs y uniformes por almacén</div></div>
+    <button class="btn btn-primary" onclick="toggleForm('form-stock')">+ Actualizar stock</button>
+  </div>
+
+  <div class="form-section" id="form-stock">
+    <div class="section-head">Actualizar stock</div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Sede *</label>
+        <select id="s-sede"><option value="">Seleccionar...</option>
+          <option>Almacén Lima</option><option>Almacén Arequipa</option><option>Almacén Trujillo</option>
+          <option>Almacén Cusco</option><option>Almacén Piura</option><option>Almacén Ica</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Artículo *</label>
+        <select id="s-art"><option value="">Seleccionar...</option>
+          <option>Casco</option><option>Guantes</option><option>Lentes de protección</option>
+          <option>Chaleco reflectivo</option><option>Zapatos de seguridad</option><option>Respirador N95</option>
+          <option>Polo uniforme</option><option>Pantalón uniforme</option><option>Casaca</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Unidad</label>
+        <select id="s-unidad"><option>Unidades</option><option>Pares</option><option>Cajas</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stock actual *</label><input id="s-actual" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label>Stock mínimo</label><input id="s-min" type="number" min="0" placeholder="5"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary btn-sm" onclick="toggleForm('form-stock')">Cancelar</button>
+      <button class="btn btn-accent btn-sm" onclick="guardarStock()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="stock-grid" id="stock-grid"></div>
+  <div class="empty-state" id="empty-stock" style="display:none">Sin stock registrado.</div>
+</div>
+
+<!-- ══════════════════ EQUIPO ══════════════════ -->
+<div class="panel" id="panel-equipo">
+  <div class="head-row">
+    <div><div class="section-title">Vista de equipo</div><div class="section-sub">Estado de dotación por colaborador — vista para líderes</div></div>
+  </div>
+  <div class="filter-bar">
+    <input id="search-eq" placeholder="Buscar colaborador..." oninput="renderEquipo()" style="flex:1;min-width:180px">
+    <select id="f-sede-eq" onchange="renderEquipo()"><option value="">Todas las sedes</option></select>
+  </div>
+  <div class="member-grid" id="equipo-grid"></div>
+  <div class="empty-state" id="empty-eq" style="display:none">Sin colaboradores activos.</div>
+</div>
+
+<!-- ══════════════════ CATÁLOGO ══════════════════ -->
+<div class="panel" id="panel-catalogo">
+  <div class="head-row">
+    <div><div class="section-title">Catálogo de dotación</div><div class="section-sub">Estándar por cargo</div></div>
+    <button class="btn btn-primary" onclick="toggleForm('form-cat')">+ Agregar ítem</button>
+  </div>
+
+  <div class="form-section" id="form-cat">
+    <div class="section-head">Nuevo ítem en catálogo</div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Cargo *</label>
+        <select id="c-cargo"><option value="">Seleccionar...</option>
+          <option>Operario logística</option><option>Supervisor</option>
+          <option>Vendedor / FDV</option><option>Mercaderista</option>
+          <option>Jefe de almacén</option><option>Administrador</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Artículo *</label>
+        <select id="c-art"><option value="">Seleccionar...</option>
+          <option>Casco</option><option>Guantes</option><option>Lentes de protección</option>
+          <option>Chaleco reflectivo</option><option>Zapatos de seguridad</option>
+          <option>Respirador N95</option><option>Polo uniforme</option>
+          <option>Pantalón uniforme</option><option>Casaca</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cantidad</label><input id="c-cant" type="number" min="1" value="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Frecuencia reposición</label>
+        <select id="c-frec"><option>Anual</option><option>Semestral</option><option>Trimestral</option><option>Mensual</option></select>
+      </div>
+      <div class="form-group"><label>Normativa</label><input id="c-norma" placeholder="Ej: D.S. 005-2012-TR"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary btn-sm" onclick="toggleForm('form-cat')">Cancelar</button>
+      <button class="btn btn-accent btn-sm" onclick="guardarCatalogo()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="cat-grid" id="cat-grid"></div>
+  <div class="empty-state" id="empty-cat" style="display:none">Catálogo vacío. Agrega ítems de dotación por cargo.</div>
+</div>
+
+<!-- ══════════════════ COLABORADORES ══════════════════ -->
+<div class="panel" id="panel-colaboradores">
+  <div class="head-row">
+    <div><div class="section-title">Colaboradores</div><div class="section-sub">Directorio del personal</div></div>
+    <button class="btn btn-primary" onclick="toggleForm('form-colab')">+ Nuevo colaborador</button>
+  </div>
+
+  <div class="form-section" id="form-colab">
+    <div class="section-head">Nuevo colaborador</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nombres y apellidos *</label><input id="col-nombre" placeholder="Apellidos, Nombres"></div>
+      <div class="form-group"><label>DNI / Código *</label><input id="col-dni" placeholder="00000000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cargo *</label>
+        <select id="col-cargo"><option value="">Seleccionar...</option>
+          <option>Operario logística</option><option>Supervisor</option>
+          <option>Vendedor / FDV</option><option>Mercaderista</option>
+          <option>Jefe de almacén</option><option>Administrador</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Sede *</label>
+        <select id="col-sede"><option value="">Seleccionar...</option>
+          <option>Almacén Lima</option><option>Almacén Arequipa</option><option>Almacén Trujillo</option>
+          <option>Almacén Cusco</option><option>Almacén Piura</option><option>Almacén Ica</option>
+          <option>Fuerza de ventas - Lima</option><option>Fuerza de ventas - Arequipa</option>
+          <option>Fuerza de ventas - Trujillo</option><option>Fuerza de ventas - Cusco</option>
+          <option>Fuerza de ventas - Piura</option>
+          <option>Mercaderista - Lima</option><option>Mercaderista - Arequipa</option>
+          <option>Mercaderista - Ica</option><option>Mercaderista - Tacna</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary btn-sm" onclick="toggleForm('form-colab')">Cancelar</button>
+      <button class="btn btn-accent btn-sm" onclick="guardarColaborador()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <input id="search-col" placeholder="Buscar..." oninput="renderColaboradores()" style="flex:1;min-width:180px">
+    <select id="f-sede-col" onchange="renderColaboradores()"><option value="">Todas las sedes</option></select>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr><th>Nombre</th><th>DNI</th><th>Cargo</th><th>Sede</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-col"></tbody></table>
+  </div>
+  <div class="empty-state" id="empty-col" style="display:none">Sin colaboradores registrados.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// DATOS EN MEMORIA
+// ════════════════════════════════════════════════════════
+var _colaboradores = [];
+var _entregas      = [];
+var _stock         = [];
+var _catalogo      = [];
+
+// ════════════════════════════════════════════════════════
+// PERSISTENCIA — igual patrón que RecruitAI
+// API primero, localStorage como fallback
+// ════════════════════════════════════════════════════════
+var API = '/api/data';
+var LS  = { col:'epp_colaboradores', ent:'epp_entregas', stk:'epp_stock', cat:'epp_catalogo' };
+
+function safeFetch(url, opts) {
+  return fetch(url, opts).catch(function() { return null; });
+}
+
+// ── GUARDAR ──────────────────────────────────────────
+function saveColaboradores() {
+  localStorage.setItem(LS.col, JSON.stringify(_colaboradores));
+  safeFetch(API + '?type=epp_colaboradores', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ epp_colaboradores: _colaboradores })
+  });
+}
+function saveEntregas() {
+  localStorage.setItem(LS.ent, JSON.stringify(_entregas));
+  safeFetch(API + '?type=epp_entregas', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ epp_entregas: _entregas })
+  });
+}
+function saveStock() {
+  localStorage.setItem(LS.stk, JSON.stringify(_stock));
+  safeFetch(API + '?type=epp_stock', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ epp_stock: _stock })
+  });
+}
+function saveCatalogo() {
+  localStorage.setItem(LS.cat, JSON.stringify(_catalogo));
+  safeFetch(API + '?type=epp_catalogo', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ epp_catalogo: _catalogo })
+  });
+}
+
+// ── CARGAR ───────────────────────────────────────────
+function loadFromLS() {
+  try { _colaboradores = JSON.parse(localStorage.getItem(LS.col)||'[]'); } catch(e){ _colaboradores=[]; }
+  try { _entregas      = JSON.parse(localStorage.getItem(LS.ent)||'[]'); } catch(e){ _entregas=[]; }
+  try { _stock         = JSON.parse(localStorage.getItem(LS.stk)||'[]'); } catch(e){ _stock=[]; }
+  try { _catalogo      = JSON.parse(localStorage.getItem(LS.cat)||'[]'); } catch(e){ _catalogo=[]; }
+}
+
+function setSyncStatus(online) {
+  var dot   = document.getElementById('sync-dot');
+  var label = document.getElementById('sync-label');
+  if (online) { dot.className='sync-dot'; label.textContent='Sincronizado'; }
+  else        { dot.className='sync-dot off'; label.textContent='Solo local'; }
+}
+
+async function loadAll() {
+  // Cargar desde localStorage primero (respuesta inmediata)
+  loadFromLS();
+  if (!_colaboradores.length && !_entregas.length) seedDemo();
+  initSelects();
+  renderAll();
+
+  // Luego intentar API (sobreescribe si hay datos más frescos)
+  try {
+    var [rc, re, rs, rcat] = await Promise.all([
+      safeFetch(API + '?type=epp_colaboradores'),
+      safeFetch(API + '?type=epp_entregas'),
+      safeFetch(API + '?type=epp_stock'),
+      safeFetch(API + '?type=epp_catalogo'),
+    ]);
+    if (!rc) { setSyncStatus(false); return; }
+    var [dc, de, ds, dcat] = await Promise.all([rc.json(), re.json(), rs.json(), rcat.json()]);
+    if (dc.epp_colaboradores)  _colaboradores = dc.epp_colaboradores;
+    if (de.epp_entregas)       _entregas      = de.epp_entregas;
+    if (ds.epp_stock)          _stock         = ds.epp_stock;
+    if (dcat.epp_catalogo)     _catalogo      = dcat.epp_catalogo;
+    // Guardar en LS como caché
+    localStorage.setItem(LS.col, JSON.stringify(_colaboradores));
+    localStorage.setItem(LS.ent, JSON.stringify(_entregas));
+    localStorage.setItem(LS.stk, JSON.stringify(_stock));
+    localStorage.setItem(LS.cat, JSON.stringify(_catalogo));
+    setSyncStatus(true);
+    initSelects();
+    renderAll();
+  } catch(e) {
+    setSyncStatus(false);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fmtFecha(d){ if(!d) return '—'; var dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function diasHasta(d){ if(!d) return null; return Math.round((new Date(d+'T00:00:00')-new Date())/86400000); }
+function calcEstado(vence){
+  if(!vence) return 'Vigente';
+  var d=diasHasta(vence);
+  if(d<0) return 'Vencido';
+  if(d<=90) return 'Por vencer';
+  return 'Vigente';
+}
+function pillEstado(e){
+  var m={'Vigente':'pill-green','Por vencer':'pill-yellow','Vencido':'pill-red'};
+  return '<span class="pill '+(m[e]||'pill-gray')+'">'+e+'</span>';
+}
+function avatarColor(n){
+  var cols=['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#9333ea','#16a34a'];
+  var h=0; for(var c of n) h=(h*31+c.charCodeAt(0))%cols.length;
+  return cols[h];
+}
+function initials(n){ return n.split(' ').slice(0,2).map(function(p){return p[0]||'';}).join('').toUpperCase(); }
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show';
+  setTimeout(function(){ t.className='toast'; },2600);
+}
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('panel-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  renderSection(id);
+}
+function toggleForm(id){
+  var el=document.getElementById(id);
+  el.classList.toggle('open');
+  if(id==='form-entrega' && el.classList.contains('open')) populateColabSelect();
+}
+function renderSection(id){
+  var map={dashboard:renderDashboard,alertas:renderAlertas,entregas:renderEntregas,
+    stock:renderStock,equipo:renderEquipo,catalogo:renderCatalogo,colaboradores:renderColaboradores};
+  if(map[id]) map[id]();
+}
+function renderAll(){
+  renderDashboard(); renderAlertas(); renderEntregas();
+  renderStock(); renderEquipo(); renderCatalogo(); renderColaboradores();
+}
+function initSelects(){
+  var SEDES=['Almacén Lima','Almacén Arequipa','Almacén Trujillo','Almacén Cusco','Almacén Piura','Almacén Ica',
+    'Fuerza de ventas - Lima','Fuerza de ventas - Arequipa','Fuerza de ventas - Trujillo','Fuerza de ventas - Cusco','Fuerza de ventas - Piura',
+    'Mercaderista - Lima','Mercaderista - Arequipa','Mercaderista - Ica','Mercaderista - Tacna'];
+  ['f-sede-ent','f-sede-eq','f-sede-col'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    var cur=el.value; while(el.options.length>1) el.remove(1);
+    SEDES.forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; el.appendChild(o); });
+    el.value=cur;
+  });
+}
+function populateColabSelect(){
+  var sel=document.getElementById('e-colab');
+  sel.innerHTML='<option value="">Seleccionar...</option>';
+  _colaboradores.filter(function(c){return c.estado==='Activo';}).sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(c){
+    var o=document.createElement('option'); o.value=c.id; o.textContent=c.nombre+' — '+c.sede; sel.appendChild(o);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// DEMO DATA (solo si no hay datos)
+// ════════════════════════════════════════════════════════
+function seedDemo(){
+  var hoy=new Date();
+  function past(d){ var dt=new Date(hoy); dt.setDate(dt.getDate()-d); return dt.toISOString().slice(0,10); }
+  function future(d){ var dt=new Date(hoy); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
+  _colaboradores=[
+    {id:'c1',nombre:'Quispe Mamani, Carlos',dni:'00123456',cargo:'Operario logística',sede:'Almacén Lima',estado:'Activo'},
+    {id:'c2',nombre:'Flores Ramos, Luis',dni:'00234567',cargo:'Operario logística',sede:'Almacén Lima',estado:'Activo'},
+    {id:'c3',nombre:'García López, María',dni:'00345678',cargo:'Supervisora',sede:'Almacén Arequipa',estado:'Activo'},
+    {id:'c4',nombre:'Torres Huanca, José',dni:'00456789',cargo:'Vendedor / FDV',sede:'Fuerza de ventas - Cusco',estado:'Activo'},
+    {id:'c5',nombre:'Cruz Valdez, Ana',dni:'00678901',cargo:'Mercaderista',sede:'Mercaderista - Ica',estado:'Activo'},
+    {id:'c6',nombre:'Palomino Vera, Laura',dni:'01123456',cargo:'Mercaderista',sede:'Mercaderista - Tacna',estado:'Activo'},
+  ];
+  _entregas=[
+    {id:'e1',colId:'c1',tipo:'Casco',talla:'Talla única',cant:1,fecha:past(120),vence:future(245),resp:'Pérez Torres, Ana',firma:'Confirmado',obs:''},
+    {id:'e2',colId:'c1',tipo:'Guantes',talla:'L',cant:2,fecha:past(120),vence:future(45),resp:'Pérez Torres, Ana',firma:'Confirmado',obs:''},
+    {id:'e3',colId:'c2',tipo:'Chaleco reflectivo',talla:'L',cant:1,fecha:past(200),vence:past(10),resp:'Pérez Torres, Ana',firma:'Confirmado',obs:''},
+    {id:'e4',colId:'c3',tipo:'Polo uniforme',talla:'M',cant:3,fecha:past(60),vence:'',resp:'Lima, Pedro',firma:'Confirmado',obs:''},
+    {id:'e5',colId:'c4',tipo:'Polo uniforme',talla:'L',cant:3,fecha:past(60),vence:'',resp:'Lima, Pedro',firma:'Pendiente',obs:''},
+    {id:'e6',colId:'c5',tipo:'Chaleco reflectivo',talla:'S',cant:1,fecha:past(180),vence:past(30),resp:'Lima, Pedro',firma:'Confirmado',obs:''},
+    {id:'e7',colId:'c6',tipo:'Guantes',talla:'S',cant:2,fecha:past(100),vence:future(55),resp:'Lima, Pedro',firma:'Confirmado',obs:''},
+  ];
+  _stock=[
+    {id:'s1',sede:'Almacén Lima',art:'Casco',actual:12,min:5,unidad:'Unidades'},
+    {id:'s2',sede:'Almacén Lima',art:'Guantes',actual:3,min:10,unidad:'Pares'},
+    {id:'s3',sede:'Almacén Lima',art:'Lentes de protección',actual:8,min:5,unidad:'Unidades'},
+    {id:'s4',sede:'Almacén Arequipa',art:'Casco',actual:6,min:4,unidad:'Unidades'},
+    {id:'s5',sede:'Almacén Arequipa',art:'Chaleco reflectivo',actual:2,min:5,unidad:'Unidades'},
+    {id:'s6',sede:'Almacén Trujillo',art:'Respirador N95',actual:15,min:10,unidad:'Unidades'},
+  ];
+  _catalogo=[
+    {id:'cat1',cargo:'Operario logística',art:'Casco',cant:1,frec:'Anual',norma:'D.S. 005-2012-TR'},
+    {id:'cat2',cargo:'Operario logística',art:'Guantes',cant:2,frec:'Semestral',norma:'D.S. 005-2012-TR'},
+    {id:'cat3',cargo:'Operario logística',art:'Polo uniforme',cant:3,frec:'Anual',norma:'Política interna'},
+    {id:'cat4',cargo:'Supervisor',art:'Casco',cant:1,frec:'Anual',norma:'D.S. 005-2012-TR'},
+    {id:'cat5',cargo:'Vendedor / FDV',art:'Polo uniforme',cant:3,frec:'Anual',norma:'Política interna'},
+    {id:'cat6',cargo:'Mercaderista',art:'Chaleco reflectivo',cant:1,frec:'Anual',norma:'D.S. 005-2012-TR'},
+  ];
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ════════════════════════════════════════════════════════
+function renderDashboard(){
+  document.getElementById('dash-fecha').textContent = new Date().toLocaleDateString('es-PE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var vencidos   = _entregas.filter(function(e){return calcEstado(e.vence)==='Vencido';}).length;
+  var porVencer  = _entregas.filter(function(e){return calcEstado(e.vence)==='Por vencer';}).length;
+  var sinFirma   = _entregas.filter(function(e){return e.firma==='Pendiente';}).length;
+  var activos    = _colaboradores.filter(function(c){return c.estado==='Activo';}).length;
+  document.getElementById('dash-kpis').innerHTML =
+    kpiCard('Colaboradores activos', activos, '', '')+
+    kpiCard('Entregas registradas', _entregas.length, '', '')+
+    kpiCard('Por vencer (90d)', porVencer, 'kpi-yellow', porVencer+' artículos')+
+    kpiCard('Vencidos', vencidos, 'kpi-red', sinFirma+' sin firma');
+
+  // Por sede
+  var sedesUnicas = [...new Set(_colaboradores.map(function(c){return c.sede;}))].slice(0,6);
+  var html = '';
+  sedesUnicas.forEach(function(sede){
+    var cols = _colaboradores.filter(function(c){return c.sede===sede;});
+    var total = cols.length;
+    var ok = cols.filter(function(c){
+      var ents = _entregas.filter(function(e){return e.colId===c.id;});
+      return ents.length>0 && !ents.some(function(e){return calcEstado(e.vence)==='Vencido';});
+    }).length;
+    var pct = total>0 ? Math.round(ok/total*100) : 0;
+    var color = pct>=80 ? '#059669' : pct>=50 ? '#d97706' : '#dc2626';
+    html += '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px;color:var(--muted)">'+sede+'</span><span style="font-size:12px;font-weight:600;color:'+color+'">'+pct+'%</span></div><div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+'"></div></div></div>';
+  });
+  document.getElementById('dash-sedes').innerHTML = html || '<div class="empty-state">Sin datos de sedes.</div>';
+
+  // Recientes
+  var rec = _entregas.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);}).slice(0,5);
+  var rhtml = '';
+  rec.forEach(function(e){
+    var c = _colaboradores.find(function(x){return x.id===e.colId;}) || {nombre:'—',sede:'—'};
+    rhtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--border)">'
+      + '<div class="avatar" style="background:'+avatarColor(c.nombre)+';width:28px;height:28px;font-size:10px;flex-shrink:0">'+initials(c.nombre)+'</div>'
+      + '<div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">'+c.nombre+'</div><div style="font-size:11px;color:var(--muted)">'+e.tipo+' — '+fmtFecha(e.fecha)+'</div></div>'
+      + pillEstado(calcEstado(e.vence))+'</div>';
+  });
+  document.getElementById('dash-recientes').innerHTML = rhtml || '<div class="empty-state">Sin entregas recientes.</div>';
+
+  // Badge alertas
+  var total = vencidos + porVencer;
+  var b = document.getElementById('badge-alerta');
+  b.textContent = total; b.style.display = total>0 ? '' : 'none';
+}
+function kpiCard(label, val, cls, sub){
+  return '<div class="kpi-card"><div class="kpi-label">'+label+'</div><div class="kpi-val '+(cls||'")">'+val+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER ALERTAS
+// ════════════════════════════════════════════════════════
+function renderAlertas(){
+  var alertas = _entregas
+    .map(function(e){ return Object.assign({}, e, {colab: _colaboradores.find(function(c){return c.id===e.colId;})||{nombre:'—',sede:'—'}, dias: diasHasta(e.vence), est: calcEstado(e.vence)}); })
+    .filter(function(e){ return e.vence && (e.est==='Vencido'||e.est==='Por vencer'); })
+    .sort(function(a,b){ return (a.dias||0)-(b.dias||0); });
+  if(!alertas.length){
+    document.getElementById('alertas-list').innerHTML='<div class="empty-state">✓ Sin alertas activas. Todos los artículos están vigentes.</div>'; return;
+  }
+  document.getElementById('alertas-list').innerHTML = alertas.map(function(e){
+    var isVenc = e.est==='Vencido';
+    return '<div class="alert-item '+(isVenc?'alert-red':'alert-yellow')+'">'
+      + '<div class="alert-dot '+(isVenc?'dot-red':'dot-yellow')+'"></div>'
+      + '<div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">'+e.colab.nombre+' — '+e.tipo+'</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+e.colab.sede+' · Vence: '+fmtFecha(e.vence)+' · '+(isVenc?'Venció hace '+Math.abs(e.dias)+' días':'Vence en '+e.dias+' días')+'</div></div>'
+      + '<button class="btn btn-sm '+(isVenc?'btn-danger':'btn-warn')+'" onclick="abrirRenovacion(\''+e.id+'\')">Renovar</button></div>';
+  }).join('');
+}
+function abrirRenovacion(id){
+  showPanel('entregas', document.querySelectorAll('.nav-tab')[2]);
+  setTimeout(function(){ toggleForm('form-entrega'); },100);
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER ENTREGAS
+// ════════════════════════════════════════════════════════
+function renderEntregas(){
+  var q   = (document.getElementById('search-ent').value||'').toLowerCase();
+  var fS  = document.getElementById('f-sede-ent').value;
+  var fE  = document.getElementById('f-est-ent').value;
+  var rows = _entregas
+    .map(function(e){ return Object.assign({}, e, {colab: _colaboradores.find(function(c){return c.id===e.colId;})||{nombre:'—',sede:'—'}, est: calcEstado(e.vence)}); })
+    .filter(function(e){
+      if(q && !e.colab.nombre.toLowerCase().includes(q) && !e.tipo.toLowerCase().includes(q)) return false;
+      if(fS && e.colab.sede!==fS) return false;
+      if(fE && e.est!==fE) return false;
+      return true;
+    })
+    .sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  var tbody = document.getElementById('tbody-ent');
+  var empty = document.getElementById('empty-ent');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(function(e){
+    return '<tr><td class="td-name">'+e.colab.nombre+'</td><td style="font-size:11px">'+e.colab.sede+'</td><td>'+e.tipo+'</td><td style="text-align:center">'+(e.talla||'—')+' / '+e.cant+'</td><td>'+fmtFecha(e.fecha)+'</td><td>'+fmtFecha(e.vence)+'</td><td>'+pillEstado(e.est)+'</td>'
+      +'<td><span class="pill '+(e.firma==='Confirmado'?'pill-green':e.firma==='Pendiente'?'pill-yellow':'pill-gray')+'">'+e.firma+'</span></td>'
+      +'<td><button class="btn btn-danger btn-sm" onclick="eliminarEntrega(\''+e.id+'\')">✕</button></td></tr>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER STOCK
+// ════════════════════════════════════════════════════════
+function renderStock(){
+  var bySede = {};
+  _stock.forEach(function(s){ if(!bySede[s.sede]) bySede[s.sede]=[]; bySede[s.sede].push(s); });
+  var sedes = Object.keys(bySede);
+  var empty = document.getElementById('empty-stock');
+  var grid  = document.getElementById('stock-grid');
+  if(!sedes.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML = sedes.map(function(sede){
+    var arts = bySede[sede];
+    return '<div class="stock-card"><div class="stock-sede">'+sede+'</div>'
+      + arts.map(function(a){
+          var pct = a.min>0 ? Math.min(100,Math.round(a.actual/a.min*100)) : 100;
+          var color = a.actual<=a.min ? '#dc2626' : a.actual<=a.min*1.5 ? '#d97706' : '#059669';
+          return '<div class="stock-row"><div><div class="stock-art">'+a.art+'</div><div class="stock-min">Mín: '+a.min+' '+a.unidad+'</div>'
+            +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+'"></div></div></div>'
+            +'<div style="display:flex;align-items:center;gap:8px"><span class="stock-num" style="color:'+color+'">'+a.actual+'</span>'
+            +'<button class="btn btn-danger btn-sm" onclick="eliminarStock(\''+a.id+'\')">✕</button></div></div>';
+        }).join('')
+      + '</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER EQUIPO
+// ════════════════════════════════════════════════════════
+function renderEquipo(){
+  var q  = (document.getElementById('search-eq').value||'').toLowerCase();
+  var fS = document.getElementById('f-sede-eq').value;
+  var cols = _colaboradores.filter(function(c){
+    if(c.estado!=='Activo') return false;
+    if(q && !c.nombre.toLowerCase().includes(q)) return false;
+    if(fS && c.sede!==fS) return false;
+    return true;
+  });
+  var grid  = document.getElementById('equipo-grid');
+  var empty = document.getElementById('empty-eq');
+  if(!cols.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML = cols.map(function(c){
+    var ents = _entregas.filter(function(e){return e.colId===c.id;}).map(function(e){return Object.assign({},e,{est:calcEstado(e.vence)});});
+    var venc = ents.filter(function(e){return e.est==='Vencido';}).length;
+    var pv   = ents.filter(function(e){return e.est==='Por vencer';}).length;
+    var overColor = venc>0?'#dc2626':pv>0?'#d97706':'#059669';
+    var overLabel = venc>0?'Con vencidos':pv>0?'Por vencer':'Al día';
+    return '<div class="member-card"><div class="member-header">'
+      +'<div class="avatar" style="background:'+avatarColor(c.nombre)+'">'+initials(c.nombre)+'</div>'
+      +'<div style="flex:1"><div class="member-name">'+c.nombre+'</div><div class="member-role">'+c.cargo+' · '+c.sede.split(' - ').pop()+'</div></div>'
+      +'<span class="pill" style="background:'+overColor+'18;color:'+overColor+';flex-shrink:0">'+overLabel+'</span></div>'
+      + (ents.length ? ents.map(function(e){
+          return '<div class="epp-row"><span class="epp-name">'+e.tipo+'</span><div style="display:flex;align-items:center;gap:6px">'
+            +(e.vence?'<span class="epp-date">'+fmtFecha(e.vence)+'</span>':'')
+            +pillEstado(e.est)+'</div></div>';
+        }).join('') : '<div style="font-size:12px;color:var(--muted);padding:6px 0">Sin entregas registradas</div>')
+      +'</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER CATÁLOGO
+// ════════════════════════════════════════════════════════
+function renderCatalogo(){
+  var empty = document.getElementById('empty-cat');
+  var grid  = document.getElementById('cat-grid');
+  if(!_catalogo.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML = _catalogo.map(function(c){
+    return '<div class="cat-card"><div class="cat-cargo">'+c.cargo+'</div><div class="cat-item">'+c.art+'</div>'
+      +'<div class="cat-detail">Cantidad: '+c.cant+' · '+c.frec+'</div>'
+      +(c.norma?'<div class="cat-norma">'+c.norma+'</div>':'')
+      +'<button class="btn btn-danger btn-sm" style="margin-top:8px;width:100%" onclick="eliminarCatalogo(\''+c.id+'\')">Eliminar</button></div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER COLABORADORES
+// ════════════════════════════════════════════════════════
+function renderColaboradores(){
+  var q  = (document.getElementById('search-col').value||'').toLowerCase();
+  var fS = document.getElementById('f-sede-col').value;
+  var rows = _colaboradores.filter(function(c){
+    if(q && !c.nombre.toLowerCase().includes(q) && !c.dni.includes(q)) return false;
+    if(fS && c.sede!==fS) return false;
+    return true;
+  });
+  var tbody = document.getElementById('tbody-col');
+  var empty = document.getElementById('empty-col');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(function(c){
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px">'
+      +'<div class="avatar" style="background:'+avatarColor(c.nombre)+';width:26px;height:26px;font-size:9px;flex-shrink:0">'+initials(c.nombre)+'</div>'
+      +'<span class="td-name">'+c.nombre+'</span></div></td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:12px">'+c.dni+'</td>'
+      +'<td>'+c.cargo+'</td><td style="font-size:12px">'+c.sede+'</td>'
+      +'<td><span class="pill '+(c.estado==='Activo'?'pill-green':'pill-gray')+'">'+c.estado+'</span></td>'
+      +'<td><button class="btn btn-danger btn-sm" onclick="eliminarColaborador(\''+c.id+'\')">✕</button></td></tr>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// GUARDAR — formularios
+// ════════════════════════════════════════════════════════
+function guardarEntrega(){
+  var colId = document.getElementById('e-colab').value;
+  var tipo  = document.getElementById('e-tipo').value;
+  var fecha = document.getElementById('e-fecha').value;
+  if(!colId||!tipo||!fecha){ toast('Completa los campos obligatorios'); return; }
+  _entregas.push({
+    id:uid(), colId:colId, tipo:tipo,
+    talla: document.getElementById('e-talla').value,
+    cant:  parseInt(document.getElementById('e-cant').value)||1,
+    fecha: fecha,
+    vence: document.getElementById('e-vence').value,
+    resp:  document.getElementById('e-resp').value,
+    firma: document.getElementById('e-firma').value,
+    obs:   document.getElementById('e-obs').value,
+  });
+  saveEntregas();
+  toggleForm('form-entrega');
+  ['e-talla','e-resp','e-obs','e-vence'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('e-tipo').value=''; document.getElementById('e-cant').value='1'; document.getElementById('e-firma').value='Pendiente';
+  renderAll(); toast('✓ Entrega registrada');
+}
+function guardarStock(){
+  var sede = document.getElementById('s-sede').value;
+  var art  = document.getElementById('s-art').value;
+  var act  = parseInt(document.getElementById('s-actual').value);
+  if(!sede||!art||isNaN(act)){ toast('Completa los campos obligatorios'); return; }
+  var exist = _stock.find(function(s){return s.sede===sede && s.art===art;});
+  if(exist){ exist.actual=act; exist.min=parseInt(document.getElementById('s-min').value)||5; exist.unidad=document.getElementById('s-unidad').value; }
+  else _stock.push({id:uid(),sede:sede,art:art,actual:act,min:parseInt(document.getElementById('s-min').value)||5,unidad:document.getElementById('s-unidad').value});
+  saveStock(); toggleForm('form-stock'); renderAll(); toast('✓ Stock actualizado');
+}
+function guardarCatalogo(){
+  var cargo = document.getElementById('c-cargo').value;
+  var art   = document.getElementById('c-art').value;
+  if(!cargo||!art){ toast('Completa los campos obligatorios'); return; }
+  _catalogo.push({id:uid(),cargo:cargo,art:art,cant:parseInt(document.getElementById('c-cant').value)||1,frec:document.getElementById('c-frec').value,norma:document.getElementById('c-norma').value});
+  saveCatalogo(); toggleForm('form-cat'); renderAll(); toast('✓ Ítem agregado al catálogo');
+}
+function guardarColaborador(){
+  var nombre = document.getElementById('col-nombre').value.trim();
+  var dni    = document.getElementById('col-dni').value.trim();
+  var cargo  = document.getElementById('col-cargo').value;
+  var sede   = document.getElementById('col-sede').value;
+  if(!nombre||!dni||!cargo||!sede){ toast('Completa los campos obligatorios'); return; }
+  _colaboradores.push({id:uid(),nombre:nombre,dni:dni,cargo:cargo,sede:sede,estado:'Activo'});
+  saveColaboradores(); toggleForm('form-colab'); renderAll(); toast('✓ Colaborador agregado');
+}
+
+// ════════════════════════════════════════════════════════
+// ELIMINAR
+// ════════════════════════════════════════════════════════
+function eliminarEntrega(id){ if(!confirm('¿Eliminar esta entrega?')) return; _entregas=_entregas.filter(function(e){return e.id!==id;}); saveEntregas(); renderAll(); toast('Eliminado'); }
+function eliminarStock(id){ if(!confirm('¿Eliminar?')) return; _stock=_stock.filter(function(s){return s.id!==id;}); saveStock(); renderAll(); toast('Eliminado'); }
+function eliminarCatalogo(id){ if(!confirm('¿Eliminar?')) return; _catalogo=_catalogo.filter(function(c){return c.id!==id;}); saveCatalogo(); renderAll(); toast('Eliminado'); }
+function eliminarColaborador(id){ if(!confirm('¿Eliminar colaborador y sus entregas?')) return; _colaboradores=_colaboradores.filter(function(c){return c.id!==id;}); _entregas=_entregas.filter(function(e){return e.colId!==id;}); saveColaboradores(); saveEntregas(); renderAll(); toast('Eliminado'); }
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+document.getElementById('e-fecha').valueAsDate = new Date();
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') document.querySelectorAll('.form-section.open').forEach(function(f){f.classList.remove('open');}); });
+loadAll();
+</script>
+</body>
+</html>
